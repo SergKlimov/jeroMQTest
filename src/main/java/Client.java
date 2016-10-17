@@ -7,10 +7,12 @@ public class Client implements Runnable {
 
     private String name;
     private int sleep;
+    private String serv;
 
-    public Client(int sleep, String name) {
+    public Client(int sleep, String name, String serv) {
         this.sleep = sleep;
         this.name = name;
+        this.serv = serv;
     }
 
     public void run() {
@@ -21,7 +23,8 @@ public class Client implements Runnable {
         //  Socket to talk to server
         System.out.println("Connecting " +name+ " to hello world server…");
         ZMQ.Socket requester = context.socket(ZMQ.REQ);
-        requester.connect("tcp://10.16.161.78:1488");
+        //requester.connect("tcp://10.16.161.78:1488");
+        requester.connect("tcp://"+serv+":1488");
 
         for (int i = 0; i < 20; i++){
             requester.send(hello, 0);

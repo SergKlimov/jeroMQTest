@@ -4,6 +4,10 @@
 
 import org.zeromq.ZMQ;
 
+import java.io.IOException;
+import java.net.*;
+import java.util.Enumeration;
+
 public class JeroMQClient {
 
     public static boolean makeShake(String hello, String resp, ZMQ.Socket requester){
@@ -17,30 +21,68 @@ public class JeroMQClient {
         return shakeSuc;
     }
 
-    public static void main(String[] args){
+    private static final String REQ = "DISC_REQUEST";
+    private static final String RESP = "DISC_RESP";
 
-        String hello = "shalom";
+    public static void main(String[] args) {
+
+        /*String hello = "shalom";
         String cmd = "{ 'a':'qq', 'b':'cmd' }";
-        String resp = "jawohl";
+        String resp = "jawohl";*/
 
-        ZMQ.Context context = ZMQ.context(1);
+        String serv = "";
 
-        //  Socket to talk to server
-        System.out.println("Connecting to hello world server…");
-
-        ZMQ.Socket requester = context.socket(ZMQ.REQ);
-        requester.connect("tcp://localhost:1488");
-
-        if(makeShake(hello, resp, requester)){
-            for (int i = 0;i<3;i++){
-                requester.send(cmd.getBytes(), 0);
-                byte[] reply = requester.recv(0);
+        //service discovery
+        try {
+            DatagramSocket datagramSocket = new DatagramSocket();
+            datagramSocket.setBroadcast(true);
+            byte[] sendData = REQ.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+                    InetAddress.getByName("255.255.255.255"), 61488);
+            datagramSocket.send(sendPacket);
+            System.out.println("Sent to multi");
+            Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()){
+                NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
+                if(networkInterface.isLoopback() || !networkInterface.isUp()){
+                    if(networkInterface.isLoopback())
+                        System.out.println("found loopback");
+                    continue;
+                }
+                for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()){
+                    InetAddress broadcast = interfaceAddress.getBroadcast();
+                    if(broadcast==null){
+                        continue;
+                    }
+                    DatagramPacket sendPack = new DatagramPacket(sendData, sendData.length,
+                            broadcast, 61488);
+                    datagramSocket.send(sendPack);
+                    System.out.println("Pack sent to: "+broadcast.getHostAddress());
+                }
             }
-            requester.send(new String("bb").getBytes(), 0);
-            byte[] reply = requester.recv(0);
+            byte[] recvData = new byte[15000];
+            DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+            datagramSocket.receive(recvPacket);
+            System.out.println("resp: "+recvPacket.getAddress().getHostAddress());
+            String msg = new String(recvPacket.getData()).trim();
+            if(msg.equals(RESP)){
+                serv = recvPacket.getAddress().getHostAddress();
+                System.out.println("serv: "+serv);
+            }
+            datagramSocket.close();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        requester.close();
-        context.term();
+        /*Client c1 = new Client(1000, "1", serv);
+        Client c2 = new Client(250, "2", serv);
+        Thread t1 = new Thread(c1);
+        Thread t2 = new Thread(c2);
+        t1.start();
+        t2.start();*/
     }
 }
