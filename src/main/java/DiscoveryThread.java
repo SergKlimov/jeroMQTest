@@ -24,11 +24,11 @@ public class DiscoveryThread implements Runnable {
             socket = new DatagramSocket(61488, InetAddress.getByName("0.0.0.0"));
             socket.setBroadcast(true);
             while (true){
-                System.out.println("Rcv broadcast");
+                //System.out.println("Rcv broadcast");
                 byte[] recvBuf = new byte[15000];
                 DatagramPacket packet = new DatagramPacket(recvBuf, recvBuf.length);
                 socket.receive(packet);
-                System.out.println("Discovery packett recved: "+new String(packet.getData()));
+                System.out.println("Discovery packet recved: "+new String(packet.getData()).trim());
                 String msg = new String(packet.getData()).trim();
                 if(msg.equals(REQ)){
                     byte[] sendData = RESP.getBytes();
